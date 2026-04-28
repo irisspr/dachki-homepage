@@ -569,7 +569,7 @@ export default function App() {
         <section className="relative overflow-hidden px-4 py-16 md:px-8 md:py-24">
           <div className="absolute left-1/2 top-10 h-80 w-80 -translate-x-1/2 rounded-full bg-blue-200/40 blur-3xl" />
 
-          <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+          <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
             <div>
               <div className="mb-5 flex flex-wrap gap-2">
                 <Badge>Für Dachdeckerbetriebe</Badge>
