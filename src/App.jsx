@@ -106,11 +106,14 @@ function scrollToId(id) {
   const element = document.getElementById(id);
   if (element) element.scrollIntoView({ behavior: "smooth", block: "start" });
 }
-
 function Card({ children, className = "" }) {
+  const hasCustomBackground = className.includes("bg-");
+
   return (
     <div
-      className={`rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ${className}`}
+      className={`rounded-3xl border border-slate-200 p-6 shadow-sm ${
+        hasCustomBackground ? "" : "bg-white"
+      } ${className}`}
     >
       {children}
     </div>
