@@ -181,13 +181,116 @@ function MetricMini({ label, value }) {
 }
 
 function DemoCard() {
+  const [form, setForm] = useState({
+    job: "Dachreparatur",
+    urgency: "Wassereintritt",
+    area: 85,
+    material: "Tonziegel",
+    inquiry:
+      "Hallo, bei uns sind mehrere Ziegel kaputt und es tropft am Dachfenster. Können Sie kurzfristig schauen?",
+  });
+
+  function update(key, value) {
+    setForm((old) => ({ ...old, [key]: value }));
+  }
+
+  const result = useMemo(() => {
+    const area = Number(form.area || 0);
+
+    const jobPrices = {
+      Dachreparatur: { base: 650, sqm: 12 },
+      Neueindeckung: { base: 2800, sqm: 85 },
+      "Flachdach-Abdichtung": { base: 1600, sqm: 48 },
+      Dachfenster: { base: 950, sqm: 6 },
+      Sturmschaden: { base: 850, sqm: 18 },
+    };
+
+    const materialFactor = {
+      Tonziegel: 1,
+      Betondachstein: 0.9,
+      Schiefer: 1.65,
+      Bitumen: 0.8,
+      Metall: 1.3,
+    };
+
+    const urgencyFactor = {
+      Normal: 1,
+      "Diese Woche": 1.1,
+      Dringend: 1.22,
+      Wassereintritt: 1.38,
+    };
+
+    const job = jobPrices[form.job] || jobPrices.Dachreparatur;
+    const material = materialFactor[form.material] || 1;
+    const urgency = urgencyFactor[form.urgency] || 1;
+
+    const net = Math.round((job.base + area * job.sqm * material) * urgency);
+    const low = Math.round(net * 0.9);
+    const high = Math.round(net * 1.18);
+
+    const text = form.inquiry.toLowerCase();
+
+    const risks = [];
+
+    if (
+      form.urgency === "Wassereintritt" ||
+      text.includes("tropft") ||
+      text.includes("wasser") ||
+      text.includes("undicht")
+    ) {
+      risks.push("Wassereintritt möglich: schnelle Sicherung und Fotodokumentation empfehlen.");
+    }
+
+    if (area > 120) {
+      risks.push("Größere Fläche: Vor-Ort-Termin vor Festpreis sinnvoll.");
+    }
+
+    if (form.material === "Schiefer") {
+      risks.push("Schiefer: Spezialmaterial und längere Ausführungszeit einplanen.");
+    }
+
+    if (!risks.length) {
+      risks.push("Keine kritischen Warnsignale erkannt. Angebot trotzdem fachlich prüfen.");
+    }
+
+    const questions = [
+      "Bitte 2–3 Fotos vom Schaden und eine Gesamtansicht des Dachs senden.",
+      "Ist aktuell Wasser im Innenraum sichtbar?",
+      "Ist der Zugang mit Leiter oder Gerüst möglich?",
+      "Welche Terminfenster passen Ihnen diese Woche?",
+    ];
+
+    const customerReply = [
+      "Hallo,",
+      "",
+      `vielen Dank für Ihre Anfrage zur Leistung „${form.job}“.`,
+      `Auf Basis Ihrer Angaben schätzen wir die betroffene Fläche auf ca. ${area} m².`,
+      "",
+      `Als erste Orientierung liegt der Richtpreis bei ca. ${low.toLocaleString("de-DE")}–${high.toLocaleString("de-DE")} € netto.`,
+      "",
+      "Für ein verbindliches Angebot benötigen wir noch Fotos vom Schaden und eine kurze Klärung der Zugangssituation.",
+      "",
+      "Viele Grüße",
+      "Ihr Dachdecker-Team",
+    ].join("\n");
+
+    return {
+      net,
+      low,
+      high,
+      risks,
+      questions,
+      customerReply,
+    };
+  }, [form]);
+
   return (
     <Card className="bg-slate-950 text-white shadow-2xl shadow-slate-300">
       <div className="mb-5 flex items-center justify-between gap-4">
         <div>
-          <div className="text-sm font-bold text-blue-300">Live-Beispiel</div>
+          <div className="text-sm font-bold text-blue-300">Interaktive Demo</div>
           <h3 className="mt-1 text-2xl font-black">
-            Aus Anfrage wird Angebot
+            Anfrage testen
           </h3>
         </div>
         <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white/10 text-2xl">
@@ -196,42 +299,116 @@ function DemoCard() {
       </div>
 
       <div className="space-y-4">
-        <div className="rounded-2xl bg-white/10 p-4">
-          <div className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-300">
-            Kundenanfrage
-          </div>
-          <p className="text-sm leading-6 text-slate-100">
-            „Hallo, bei uns sind mehrere Ziegel kaputt und es tropft am
-            Dachfenster. Können Sie kurzfristig schauen?“
-          </p>
+        <textarea
+          value={form.inquiry}
+          onChange={(e) => update("inquiry", e.target.value)}
+          className="min-h-28 w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm leading-6 text-white outline-none placeholder:text-slate-400 focus:ring-4 focus:ring-white/10"
+          placeholder="Kundenanfrage eingeben..."
+        />
+
+        <div className="grid gap-3 md:grid-cols-2">
+          <label className="block">
+            <div className="mb-1 text-xs font-bold text-slate-300">Leistung</div>
+            <select
+              value={form.job}
+              onChange={(e) => update("job", e.target.value)}
+              className="w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white outline-none"
+            >
+              <option className="text-slate-900">Dachreparatur</option>
+              <option className="text-slate-900">Neueindeckung</option>
+              <option className="text-slate-900">Flachdach-Abdichtung</option>
+              <option className="text-slate-900">Dachfenster</option>
+              <option className="text-slate-900">Sturmschaden</option>
+            </select>
+          </label>
+
+          <label className="block">
+            <div className="mb-1 text-xs font-bold text-slate-300">Dringlichkeit</div>
+            <select
+              value={form.urgency}
+              onChange={(e) => update("urgency", e.target.value)}
+              className="w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white outline-none"
+            >
+              <option className="text-slate-900">Normal</option>
+              <option className="text-slate-900">Diese Woche</option>
+              <option className="text-slate-900">Dringend</option>
+              <option className="text-slate-900">Wassereintritt</option>
+            </select>
+          </label>
+
+          <label className="block">
+            <div className="mb-1 text-xs font-bold text-slate-300">Fläche ca. m²</div>
+            <input
+              type="number"
+              value={form.area}
+              onChange={(e) => update("area", e.target.value)}
+              className="w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white outline-none"
+            />
+          </label>
+
+          <label className="block">
+            <div className="mb-1 text-xs font-bold text-slate-300">Material</div>
+            <select
+              value={form.material}
+              onChange={(e) => update("material", e.target.value)}
+              className="w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white outline-none"
+            >
+              <option className="text-slate-900">Tonziegel</option>
+              <option className="text-slate-900">Betondachstein</option>
+              <option className="text-slate-900">Schiefer</option>
+              <option className="text-slate-900">Bitumen</option>
+              <option className="text-slate-900">Metall</option>
+            </select>
+          </label>
         </div>
 
         <div className="grid gap-3 md:grid-cols-2">
           <div className="rounded-2xl bg-white/10 p-4">
-            <div className="text-xs text-slate-300">Risiko</div>
-            <div className="mt-1 font-bold">Wassereintritt möglich</div>
+            <div className="text-xs text-slate-300">Richtpreis netto</div>
+            <div className="mt-1 text-xl font-black">
+              {result.low.toLocaleString("de-DE")}–{result.high.toLocaleString("de-DE")} €
+            </div>
           </div>
-          <div className="rounded-2xl bg-white/10 p-4">
-            <div className="text-xs text-slate-300">Richtpreis</div>
-            <div className="mt-1 font-bold">1.600–2.100 € netto</div>
-          </div>
-          <div className="rounded-2xl bg-white/10 p-4">
-            <div className="text-xs text-slate-300">Rückfrage</div>
-            <div className="mt-1 font-bold">Fotos + Zugang klären</div>
-          </div>
-          <div className="rounded-2xl bg-white/10 p-4">
-            <div className="text-xs text-slate-300">Ausgabe</div>
-            <div className="mt-1 font-bold">Angebot + Kundenmail</div>
+
+          <div className="rounded-2xl bg-emerald-400 p-4 text-slate-950">
+            <div className="text-xs font-bold uppercase tracking-wide">
+              Ergebnis
+            </div>
+            <div className="mt-1 text-lg font-black">
+              Angebot + Antwort vorbereitet
+            </div>
           </div>
         </div>
 
-        <div className="rounded-2xl bg-emerald-400 p-4 text-slate-950">
-          <div className="text-xs font-bold uppercase tracking-wide">
-            Ergebnis
+        <div className="rounded-2xl bg-white/10 p-4">
+          <div className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-300">
+            Risikoanalyse
           </div>
-          <div className="mt-1 text-lg font-black">
-            Büro spart 20–40 Minuten pro Anfrage
+          <ul className="space-y-2 text-sm leading-6 text-slate-100">
+            {result.risks.map((risk) => (
+              <li key={risk}>• {risk}</li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="rounded-2xl bg-white/10 p-4">
+          <div className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-300">
+            Rückfragen an den Kunden
           </div>
+          <ul className="space-y-2 text-sm leading-6 text-slate-100">
+            {result.questions.map((question) => (
+              <li key={question}>• {question}</li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="rounded-2xl bg-white/10 p-4">
+          <div className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-300">
+            Kundenantwort
+          </div>
+          <pre className="whitespace-pre-wrap text-sm leading-6 text-slate-100">
+            {result.customerReply}
+          </pre>
         </div>
       </div>
     </Card>
