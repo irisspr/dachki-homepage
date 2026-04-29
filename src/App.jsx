@@ -190,6 +190,8 @@ function DemoCard() {
     area: 15,
     roofShape: "Pultdach",
     material: "Metall",
+    oldRoof: "Unklar",
+    accessPhotos: "Fotos fehlen / Zugang unklar",
     inquiry:
       "Hallo, wir brauchen einen Dachdecker für unser Gartenhaus, 5 x 3 Meter. Gewünscht ist ein Blechdach.",
   });
@@ -234,19 +236,35 @@ function DemoCard() {
       Wassereintritt: 1.38,
     };
 
+    const oldRoofFactor = {
+      "Nein, bleibt drauf": 1,
+      "Ja, entfernen und entsorgen": 1.18,
+      Unklar: 1.08,
+    };
+
+    const accessFactor = {
+      "Fotos vorhanden / Zugang gut": 1,
+      "Fotos vorhanden / Zugang unklar": 1.05,
+      "Fotos fehlen / Zugang unklar": 1.12,
+    };
+
     const job = jobPrices[form.job] || jobPrices.Dachreparatur;
     const material = materialFactor[form.material] || 1;
     const urgency = urgencyFactor[form.urgency] || 1;
+    const oldRoof = oldRoofFactor[form.oldRoof] || 1;
+    const access = accessFactor[form.accessPhotos] || 1;
 
     const net = Math.round(
-      (job.base + calculatedArea * job.sqm * material) * urgency
+      (job.base + calculatedArea * job.sqm * material) *
+        urgency *
+        oldRoof *
+        access
     );
 
     const low = Math.round(net * 0.9);
     const high = Math.round(net * 1.18);
 
     const text = form.inquiry.toLowerCase();
-
     const risks = [];
 
     if (
@@ -284,14 +302,32 @@ function DemoCard() {
       );
     }
 
-    if (calculatedArea > 120) {
-      risks.push("Größere Fläche: Vor-Ort-Termin vor Festpreis sinnvoll.");
+    if (form.oldRoof === "Unklar") {
+      risks.push(
+        "Altdach unklar: Demontage, Entsorgung und Zustand der Unterkonstruktion müssen geklärt werden."
+      );
     }
 
-    if (form.material === "Schiefer") {
+    if (form.oldRoof === "Ja, entfernen und entsorgen") {
       risks.push(
-        "Schiefer: Spezialmaterial und längere Ausführungszeit einplanen."
+        "Altdach soll entfernt werden: zusätzliche Arbeitszeit und Entsorgung einplanen."
       );
+    }
+
+    if (form.accessPhotos === "Fotos fehlen / Zugang unklar") {
+      risks.push(
+        "Fotos und Zugang fehlen: ohne Bilder und Zugangsklärung kein verbindliches Angebot."
+      );
+    }
+
+    if (form.accessPhotos === "Fotos vorhanden / Zugang unklar") {
+      risks.push(
+        "Fotos vorhanden, aber Zugang unklar: Materialtransport und Leiter-/Gerüststellung prüfen."
+      );
+    }
+
+    if (calculatedArea > 120) {
+      risks.push("Größere Fläche: Vor-Ort-Termin vor Festpreis sinnvoll.");
     }
 
     if (!risks.length) {
@@ -300,14 +336,26 @@ function DemoCard() {
       );
     }
 
-    const questions = [
-      `Bitte bestätigen: Handelt es sich um ein ${form.roofShape}?`,
-      "Soll das alte Dach entfernt und entsorgt werden?",
-      "Ist eine tragfähige Unterkonstruktion vorhanden?",
-      "Soll nur die Blechdeckung montiert werden oder auch Unterspannbahn/Lattung?",
-      "Bitte 2–3 Fotos vom Gartenhaus und vom aktuellen Dach senden.",
-      "Ist der Zugang zum Gartenhaus mit Material gut möglich?",
-    ];
+    const questions = [];
+
+    questions.push(`Bitte bestätigen: Handelt es sich um ein ${form.roofShape}?`);
+
+    if (form.oldRoof === "Unklar") {
+      questions.push("Soll das alte Dach entfernt und entsorgt werden?");
+    }
+
+    if (form.accessPhotos.includes("Fotos fehlen")) {
+      questions.push("Bitte 2–3 Fotos vom Gartenhaus und vom aktuellen Dach senden.");
+    }
+
+    if (form.accessPhotos.includes("Zugang unklar")) {
+      questions.push("Ist der Zugang zum Gartenhaus mit Material gut möglich?");
+    }
+
+    questions.push("Ist eine tragfähige Unterkonstruktion vorhanden?");
+    questions.push(
+      "Soll nur die Blechdeckung montiert werden oder auch Unterspannbahn/Lattung?"
+    );
 
     const customerReply = [
       "Hallo,",
@@ -320,7 +368,7 @@ function DemoCard() {
         "de-DE"
       )}–${high.toLocaleString("de-DE")} € netto.`,
       "",
-      "Für ein verbindliches Angebot benötigen wir noch Fotos vom Gartenhaus, Informationen zur vorhandenen Unterkonstruktion und eine kurze Klärung, ob das alte Dach entfernt werden soll.",
+      "Für ein verbindliches Angebot benötigen wir noch eine kurze Klärung zu Dachform, Unterkonstruktion, Altdach, Fotos und Zugang zum Gartenhaus.",
       "",
       "Viele Grüße",
       "Ihr Dachdecker-Team",
@@ -420,7 +468,7 @@ function DemoCard() {
             </select>
           </label>
 
-          <label className="block md:col-span-2">
+          <label className="block">
             <div className="mb-1 text-xs font-bold text-slate-300">
               Material
             </div>
@@ -434,6 +482,42 @@ function DemoCard() {
               <option className="text-slate-900">Schiefer</option>
               <option className="text-slate-900">Bitumen</option>
               <option className="text-slate-900">Metall</option>
+            </select>
+          </label>
+
+          <label className="block">
+            <div className="mb-1 text-xs font-bold text-slate-300">
+              Soll das alte Dach runter?
+            </div>
+            <select
+              value={form.oldRoof}
+              onChange={(e) => update("oldRoof", e.target.value)}
+              className="w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white outline-none"
+            >
+              <option className="text-slate-900">Unklar</option>
+              <option className="text-slate-900">Nein, bleibt drauf</option>
+              <option className="text-slate-900">Ja, entfernen und entsorgen</option>
+            </select>
+          </label>
+
+          <label className="block md:col-span-2">
+            <div className="mb-1 text-xs font-bold text-slate-300">
+              Fotos und Zugang
+            </div>
+            <select
+              value={form.accessPhotos}
+              onChange={(e) => update("accessPhotos", e.target.value)}
+              className="w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white outline-none"
+            >
+              <option className="text-slate-900">
+                Fotos fehlen / Zugang unklar
+              </option>
+              <option className="text-slate-900">
+                Fotos vorhanden / Zugang unklar
+              </option>
+              <option className="text-slate-900">
+                Fotos vorhanden / Zugang gut
+              </option>
             </select>
           </label>
         </div>
