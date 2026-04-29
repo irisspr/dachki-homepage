@@ -185,12 +185,13 @@ function MetricMini({ label, value }) {
 
 function DemoCard() {
   const [form, setForm] = useState({
-    job: "Dachreparatur",
-    urgency: "Wassereintritt",
-    area: 85,
-    material: "Tonziegel",
+    job: "Neueindeckung",
+    urgency: "Normal",
+    area: 15,
+    roofShape: "Pultdach",
+    material: "Metall",
     inquiry:
-      "Hallo, bei uns sind mehrere Ziegel kaputt und es tropft am Dachfenster. Können Sie kurzfristig schauen?",
+      "Hallo, wir brauchen einen Dachdecker für unser Gartenhaus, 5 x 3 Meter. Gewünscht ist ein Blechdach.",
   });
 
   function update(key, value) {
@@ -198,7 +199,17 @@ function DemoCard() {
   }
 
   const result = useMemo(() => {
-    const area = Number(form.area || 0);
+    const baseArea = Number(form.area || 0);
+
+    const roofShapeFactor = {
+      Flachdach: 1,
+      Pultdach: 1.08,
+      Satteldach: 1.18,
+    };
+
+    const calculatedArea = Math.round(
+      baseArea * (roofShapeFactor[form.roofShape] || 1)
+    );
 
     const jobPrices = {
       Dachreparatur: { base: 650, sqm: 12 },
@@ -227,7 +238,10 @@ function DemoCard() {
     const material = materialFactor[form.material] || 1;
     const urgency = urgencyFactor[form.urgency] || 1;
 
-    const net = Math.round((job.base + area * job.sqm * material) * urgency);
+    const net = Math.round(
+      (job.base + calculatedArea * job.sqm * material) * urgency
+    );
+
     const low = Math.round(net * 0.9);
     const high = Math.round(net * 1.18);
 
@@ -241,37 +255,72 @@ function DemoCard() {
       text.includes("wasser") ||
       text.includes("undicht")
     ) {
-      risks.push("Wassereintritt möglich: schnelle Sicherung und Fotodokumentation empfehlen.");
+      risks.push(
+        "Wassereintritt möglich: schnelle Sicherung und Fotodokumentation empfehlen."
+      );
     }
 
-    if (area > 120) {
+    if (form.roofShape === "Flachdach") {
+      risks.push(
+        "Flachdach: Abdichtung, Gefälle, Wasserablauf und Randanschlüsse prüfen."
+      );
+    }
+
+    if (form.roofShape === "Pultdach") {
+      risks.push(
+        "Pultdach: Gefälle, Traufkante und Befestigung der Blechprofile prüfen."
+      );
+    }
+
+    if (form.roofShape === "Satteldach") {
+      risks.push(
+        "Satteldach: First, Ortgänge und beide Dachseiten bei der Kalkulation berücksichtigen."
+      );
+    }
+
+    if (form.material === "Metall") {
+      risks.push(
+        "Blechdach: Kondensat, Belüftung, Befestigung und Unterkonstruktion klären."
+      );
+    }
+
+    if (calculatedArea > 120) {
       risks.push("Größere Fläche: Vor-Ort-Termin vor Festpreis sinnvoll.");
     }
 
     if (form.material === "Schiefer") {
-      risks.push("Schiefer: Spezialmaterial und längere Ausführungszeit einplanen.");
+      risks.push(
+        "Schiefer: Spezialmaterial und längere Ausführungszeit einplanen."
+      );
     }
 
     if (!risks.length) {
-      risks.push("Keine kritischen Warnsignale erkannt. Angebot trotzdem fachlich prüfen.");
+      risks.push(
+        "Keine kritischen Warnsignale erkannt. Angebot trotzdem fachlich prüfen."
+      );
     }
 
     const questions = [
-      "Bitte 2–3 Fotos vom Schaden und eine Gesamtansicht des Dachs senden.",
-      "Ist aktuell Wasser im Innenraum sichtbar?",
-      "Ist der Zugang mit Leiter oder Gerüst möglich?",
-      "Welche Terminfenster passen Ihnen diese Woche?",
+      `Bitte bestätigen: Handelt es sich um ein ${form.roofShape}?`,
+      "Soll das alte Dach entfernt und entsorgt werden?",
+      "Ist eine tragfähige Unterkonstruktion vorhanden?",
+      "Soll nur die Blechdeckung montiert werden oder auch Unterspannbahn/Lattung?",
+      "Bitte 2–3 Fotos vom Gartenhaus und vom aktuellen Dach senden.",
+      "Ist der Zugang zum Gartenhaus mit Material gut möglich?",
     ];
 
     const customerReply = [
       "Hallo,",
       "",
       `vielen Dank für Ihre Anfrage zur Leistung „${form.job}“.`,
-      `Auf Basis Ihrer Angaben schätzen wir die betroffene Fläche auf ca. ${area} m².`,
+      `Auf Basis Ihrer Angaben gehen wir von ca. ${baseArea} m² Grundfläche aus.`,
+      `Bei der Dachform „${form.roofShape}“ schätzen wir die relevante Dachfläche auf ca. ${calculatedArea} m².`,
       "",
-      `Als erste Orientierung liegt der Richtpreis bei ca. ${low.toLocaleString("de-DE")}–${high.toLocaleString("de-DE")} € netto.`,
+      `Als erste Orientierung liegt der Richtpreis bei ca. ${low.toLocaleString(
+        "de-DE"
+      )}–${high.toLocaleString("de-DE")} € netto.`,
       "",
-      "Für ein verbindliches Angebot benötigen wir noch Fotos vom Schaden und eine kurze Klärung der Zugangssituation.",
+      "Für ein verbindliches Angebot benötigen wir noch Fotos vom Gartenhaus, Informationen zur vorhandenen Unterkonstruktion und eine kurze Klärung, ob das alte Dach entfernt werden soll.",
       "",
       "Viele Grüße",
       "Ihr Dachdecker-Team",
@@ -281,6 +330,7 @@ function DemoCard() {
       net,
       low,
       high,
+      calculatedArea,
       risks,
       questions,
       customerReply,
@@ -291,10 +341,10 @@ function DemoCard() {
     <Card className="bg-slate-950 text-white shadow-2xl shadow-slate-300">
       <div className="mb-5 flex items-center justify-between gap-4">
         <div>
-          <div className="text-sm font-bold text-blue-300">Interaktive Demo</div>
-          <h3 className="mt-1 text-2xl font-black">
-            Anfrage testen
-          </h3>
+          <div className="text-sm font-bold text-blue-300">
+            Interaktive Demo
+          </div>
+          <h3 className="mt-1 text-2xl font-black">Anfrage testen</h3>
         </div>
         <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white/10 text-2xl">
           🏠
@@ -311,7 +361,9 @@ function DemoCard() {
 
         <div className="grid gap-3 md:grid-cols-2">
           <label className="block">
-            <div className="mb-1 text-xs font-bold text-slate-300">Leistung</div>
+            <div className="mb-1 text-xs font-bold text-slate-300">
+              Leistung
+            </div>
             <select
               value={form.job}
               onChange={(e) => update("job", e.target.value)}
@@ -326,7 +378,9 @@ function DemoCard() {
           </label>
 
           <label className="block">
-            <div className="mb-1 text-xs font-bold text-slate-300">Dringlichkeit</div>
+            <div className="mb-1 text-xs font-bold text-slate-300">
+              Dringlichkeit
+            </div>
             <select
               value={form.urgency}
               onChange={(e) => update("urgency", e.target.value)}
@@ -340,7 +394,9 @@ function DemoCard() {
           </label>
 
           <label className="block">
-            <div className="mb-1 text-xs font-bold text-slate-300">Fläche ca. m²</div>
+            <div className="mb-1 text-xs font-bold text-slate-300">
+              Grundfläche ca. m²
+            </div>
             <input
               type="number"
               value={form.area}
@@ -350,7 +406,24 @@ function DemoCard() {
           </label>
 
           <label className="block">
-            <div className="mb-1 text-xs font-bold text-slate-300">Material</div>
+            <div className="mb-1 text-xs font-bold text-slate-300">
+              Dachform
+            </div>
+            <select
+              value={form.roofShape}
+              onChange={(e) => update("roofShape", e.target.value)}
+              className="w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white outline-none"
+            >
+              <option className="text-slate-900">Flachdach</option>
+              <option className="text-slate-900">Pultdach</option>
+              <option className="text-slate-900">Satteldach</option>
+            </select>
+          </label>
+
+          <label className="block md:col-span-2">
+            <div className="mb-1 text-xs font-bold text-slate-300">
+              Material
+            </div>
             <select
               value={form.material}
               onChange={(e) => update("material", e.target.value)}
@@ -365,11 +438,19 @@ function DemoCard() {
           </label>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-3">
+          <div className="rounded-2xl bg-white/10 p-4">
+            <div className="text-xs text-slate-300">geschätzte Dachfläche</div>
+            <div className="mt-1 text-xl font-black">
+              {result.calculatedArea} m²
+            </div>
+          </div>
+
           <div className="rounded-2xl bg-white/10 p-4">
             <div className="text-xs text-slate-300">Richtpreis netto</div>
             <div className="mt-1 text-xl font-black">
-              {result.low.toLocaleString("de-DE")}–{result.high.toLocaleString("de-DE")} €
+              {result.low.toLocaleString("de-DE")}–
+              {result.high.toLocaleString("de-DE")} €
             </div>
           </div>
 
@@ -417,7 +498,6 @@ function DemoCard() {
     </Card>
   );
 }
-
 function ContactForm() {
   const [form, setForm] = useState({
     name: "",
